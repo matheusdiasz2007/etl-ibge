@@ -1,0 +1,34 @@
+﻿services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ibge_postgres
+    environment:
+      POSTGRES_DB: ibge_db
+      POSTGRES_USER: user_etl
+      POSTGRES_PASSWORD: postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_etl -d ibge_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  etl:
+    build: .
+    container_name: ibge_etl
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ibge_db
+      DB_USER: user_etl
+      DB_PASS: postgres_password
+
+volumes:
+  postgres_data:
